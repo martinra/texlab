@@ -20,6 +20,9 @@ static TEX_ERROR_REGEX: Lazy<Regex> = Lazy::new(|| {
 static WARNING_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new("(LaTeX|Package [a-zA-Z_\\-]+) Warning: (?P<msg>[^\r\n]*)").unwrap());
 
+static UNDEF_REFERENCE_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new("LaTeX Warning: (?P<msg>Reference `[^\r\n]*` on page \\d\\+ undefined on input line (?<line>\\d+)\\.[\r\n])").unwrap());
+
 static BAD_BOX_REGEX: Lazy<Regex> = Lazy::new(|| {
     Regex::new("(?P<msg>(Ov|Und)erfull \\\\[hv]box[^\r\n]*lines? (?P<line>\\d+)[^\r\n]*)").unwrap()
 });
@@ -34,9 +37,10 @@ pub fn parse_build_log(log: &str) -> BuildLog {
 
     let tex_errors = extract_matches(&log, &ranges, &TEX_ERROR_REGEX, BuildErrorLevel::Error);
     let warnings = extract_matches(&log, &ranges, &WARNING_REGEX, BuildErrorLevel::Warning);
+    let undef_references = extract_matches(&log, &ranges, &UNDEF_REFERENCE_REGEX, BuildErrorLevel::Warning);
     let bad_boxes = extract_matches(&log, &ranges, &BAD_BOX_REGEX, BuildErrorLevel::Warning);
 
-    let errors = vec![tex_errors, warnings, bad_boxes].concat();
+    let errors = vec![tex_errors, warnings, undef_references, bad_boxes].concat();
     BuildLog { errors }
 }
 
